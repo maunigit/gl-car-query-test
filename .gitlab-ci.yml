@@ -1,0 +1,196 @@
+variables:
+  ANDROID_APK_PATH: 
+  EXPO_SDK_VERSION: "34.0.0"
+  ARTIFACTORY_URL: ""
+  APPIUM_HOST: 0.0.0.0
+  ANDROID_IP: 
+  ANDROID_HOME: 
+default:
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+  before_script:
+    - lsb_release -a 
+stages:
+  - build
+  - test
+  - analyze_source
+  - publish_for_staging
+  - package_for_staging
+  - e2e
+  - publish_for_prod
+  - package_for_prod
+  - analyze_package
+install_dependencies:
+  stage: build
+  tags:
+    - node
+  image: iubar-node-ubuntu:latest
+  script:
+    - npm install
+    - npm run envinfo 
+jest:
+  stage: test
+  tags:
+    - node
+  image: iubar-node-ubuntu:latest
+  script:
+    - npm run envinfo 
+    - echo "Running Jest tests..."
+    - npm run test-jest-ci
+analyze_source:
+  stage: analyze_source
+  tags:
+    - node
+  script:
+    - echo 'Checking updates...'
+    - yarn outdated || true
+    - echo 'Auditing...'
+    - yarn audit || true
+  only:
+    - master
+expo_staging:
+    stage: publish_for_staging
+    tags:
+      - turtle-cli
+    variables:
+      RELEASE_CHANNEL: staging
+    script:
+      - export CONFIG_FILE=assets/config.json    
+      - echo "{\"priceApiUrl\":\"$URL_PRICE_API\"}" > $CONFIG_FILE
+      - npm install --non-interactive 
+      - expo login -u $EXPO_USERNAME -p $EXPO_PASSWORD
+      - expo publish --non-interactive  --quiet --release-channel ${RELEASE_CHANNEL}
+    artifacts:
+      paths:
+        - ${CI_PROJECT_DIR}/assets/*.json
+      expire_in: 1 hour  
+build_android_staging:
+  stage: package_for_staging
+  tags:
+    - turtle-cli
+  variables:
+    KEYSTORE_FILE_NAME: ""
+    KEYSTORE_ALIAS: "android-release"
+    LOGGER_LEVEL: "warn" 
+  script:
+    - expo diagnostics
+    - javac -version
+    - echo "The '${ANDROID_HOME}' path should be writable for the user '$(whoami)' (this is not an error message, but only a reminder)."
+    - turtle --version
+    - turtle setup:android --sdk-version ${EXPO_SDK_VERSION}
+    - mkdir -p ${ANDROID_APK_PATH}
+    - wget --no-verbose -O ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME} ${ARTIFACTORY_URL}/path/${KEYSTORE_FILE_NAME}
+    - ls -la ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}
+    - echo "Keystore is '${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}'"    
+    - export EXPO_ANDROID_KEYSTORE_BASE64="$(base64 ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME})"
+    - echo 'Build locally...'
+    - mkdir -p ${HOME}/.android && touch ${HOME}/.android/repositories.cfg
+    - (echo y; echo y; echo y; echo y; echo y; echo y) | ${ANDROID_HOME}/tools/bin/sdkmanager --licenses
+    - export ANDROID_APK_NAME=cq-staging.apk
+    - export APK_FILE="${ANDROID_APK_PATH}/${ANDROID_APK_NAME}"
+    - echo ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}
+    - echo ${KEYSTORE_ALIAS}
+    - ls -la ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}
+    - turtle build:android --keystore-path ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME} --keystore-alias ${KEYSTORE_ALIAS} --type apk --output ${APK_FILE}
+    - ls -lah ${APK_FILE} 
+    - pwd
+    - find ./ -name *.apk
+    - sha1sum ${APK_FILE}    
+  artifacts:
+    paths:
+      - ${CI_PROJECT_DIR}/${ANDROID_APK_PATH}/*.apk 
+    expire_in: 1 hour
+appium:
+  stage: e2e
+  tags:
+    - turtle-cli
+  script:
+    - ls -lah assets/config.json
+    - ls -lah ${APK_FILE} 
+    - pwd
+    - find ./ -name *.apk
+    - export ANDROID_APK_NAME=cq-staging.apk
+    - export APK_FILE="${ANDROID_APK_PATH}/${ANDROID_APK_NAME}"
+    - ls -lah ${APK_FILE} 
+    - pwd
+    - find ./ -name *.apk    
+    - sha1sum ${APK_FILE}
+    - npm install
+    - npm run envinfo
+    - ping -c3 ${ANDROID_IP} 
+    - ${ANDROID_HOME}/platform-tools/adb version
+    - npx wdio --version 
+    - appium -v 
+    - ${ANDROID_HOME}/platform-tools/adb kill-server || true
+    - ${ANDROID_HOME}/platform-tools/adb start-server
+    - ${ANDROID_HOME}/platform-tools/adb tcpip 5555 || true 
+    - ${ANDROID_HOME}/platform-tools/adb connect ${ANDROID_IP}:5555
+    - ${ANDROID_HOME}/platform-tools/adb devices
+    - netstat -an | grep 5555 
+    - echo "Running Appium tests..."
+    - npm run test-appium
+  after_script:
+    - ${ANDROID_HOME}/platform-tools/adb kill-server
+expo_prod:
+  stage: publish_for_prod
+  tags:
+    - turtle-cli
+  variables:
+    RELEASE_CHANNEL: default
+  script:
+    - npm install --non-interactive 
+    - expo login -u $EXPO_USERNAME -p $EXPO_PASSWORD
+    - expo publish --non-interactive  --quiet --release-channel ${RELEASE_CHANNEL}
+  only:
+    - master
+build_android_prod:
+  stage: package_for_prod
+  tags:
+    - turtle-cli
+  variables:
+    KEYSTORE_FILE_NAME: ""
+    KEYSTORE_ALIAS: "android-release"
+    LOGGER_LEVEL: "warn"
+  script:
+    - expo diagnostics
+    - javac -version
+    - echo "The '${ANDROID_HOME}' path should be writable for the user '$(whoami)' (this is not an error message, but only a reminder)."
+    - turtle --version
+    - turtle setup:android --sdk-version ${EXPO_SDK_VERSION} 
+    - mkdir -p ${ANDROID_APK_PATH}
+    - wget --no-verbose -O ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME} ${ARTIFACTORY_URL}/path/${KEYSTORE_FILE_NAME} 
+    - ls -la ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}
+    - echo "Keystore is '${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}'"
+    - export EXPO_ANDROID_KEYSTORE_BASE64="$(base64 ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME})"
+    - echo 'Build locally...'
+    - mkdir -p ${HOME}/.android && touch ${HOME}/.android/repositories.cfg
+    - (echo y; echo y; echo y; echo y; echo y; echo y) | ${ANDROID_HOME}/tools/bin/sdkmanager --licenses
+    - export ANDROID_APK_NAME=cq-prod.apk
+    - export APK_FILE="${ANDROID_APK_PATH}/${ANDROID_APK_NAME}"
+    - echo ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}
+    - echo ${KEYSTORE_ALIAS}
+    - ls -la ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME}
+    - turtle build:android --keystore-path ${ANDROID_APK_PATH}/${KEYSTORE_FILE_NAME} --keystore-alias ${KEYSTORE_ALIAS} --type apk --output ${APK_FILE}
+    - ls -lah ${APK_FILE} 
+    - pwd
+    - find ./ -name *.apk
+  artifacts:
+    paths:
+      - ${CI_PROJECT_DIR}/${ANDROID_APK_PATH}/*.apk
+    expire_in: 3 days
+  only:
+    - master
+analyze_android:
+  stage: analyze_package
+  tags:
+    - turtle-cli
+  script:
+    - ncu -g
+    - export APK_ANALYZER_CMD="${ANDROID_HOME}/tools/bin/apkanalyzer --human-readable"
+    - export ANDROID_APK_NAME=cq-prod.apk
+    - export APK_FILE="${ANDROID_APK_PATH}/${ANDROID_APK_NAME}"
+    - ls -la ${APK_FILE}
+  only:
+    - master

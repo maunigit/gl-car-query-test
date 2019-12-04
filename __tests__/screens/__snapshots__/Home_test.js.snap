@@ -1,0 +1,157 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Home renders correctly 1`] = `
+<View
+  style={
+    Object {
+      "flex": 1,
+      "justifyContent": "center",
+      "textAlign": "center",
+    }
+  }
+>
+  <TouchableOpacity
+    activeOpacity={0.2}
+  >
+    <withTheme(List.Item)
+      accessibilityLabel="make"
+      button={true}
+      description="Select a make"
+      descriptionStyle={
+        Object {
+          "color": "black",
+          "fontSize": 16,
+        }
+      }
+      left={[Function]}
+      onPress={[Function]}
+      title="Make"
+      titleStyle={
+        Object {
+          "color": "black",
+          "fontSize": 20,
+          "fontWeight": "bold",
+        }
+      }
+    />
+  </TouchableOpacity>
+  <TouchableOpacity
+    activeOpacity={0.2}
+  >
+    <withTheme(List.Item)
+      accessibilityLabel="year"
+      button={true}
+      description="Select a year"
+      descriptionStyle={
+        Object {
+          "color": "black",
+          "fontSize": 16,
+        }
+      }
+      left={[Function]}
+      onPress={[Function]}
+      title="Year"
+      titleStyle={
+        Object {
+          "color": "black",
+          "fontSize": 20,
+          "fontWeight": "bold",
+        }
+      }
+    />
+  </TouchableOpacity>
+  <TouchableOpacity
+    activeOpacity={0.2}
+  >
+    <withTheme(List.Item)
+      accessibilityLabel="model"
+      button={true}
+      description="Avaiable models of a make"
+      descriptionStyle={
+        Object {
+          "color": "gray",
+          "fontSize": 16,
+        }
+      }
+      disabled={true}
+      left={[Function]}
+      onPress={[Function]}
+      title="Model"
+      titleStyle={
+        Object {
+          "color": "gray",
+          "fontSize": 20,
+          "fontWeight": "bold",
+        }
+      }
+    />
+  </TouchableOpacity>
+  <TouchableOpacity
+    activeOpacity={0.2}
+  >
+    <withTheme(List.Item)
+      accessibilityLabel="trim"
+      button={true}
+      description="Avaiable trims of a model"
+      descriptionStyle={
+        Object {
+          "color": "gray",
+          "fontSize": 16,
+        }
+      }
+      disabled={true}
+      left={[Function]}
+      onPress={[Function]}
+      title="Trim"
+      titleStyle={
+        Object {
+          "color": "gray",
+          "fontSize": 20,
+          "fontWeight": "bold",
+        }
+      }
+    />
+  </TouchableOpacity>
+  <View
+    style={
+      Object {
+        "alignItems": "flex-end",
+        "flex": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-around",
+        "marginBottom": 30,
+      }
+    }
+  >
+    <withTheme(Button)
+      accessibilityLabel="details"
+      color="paleturquoise"
+      disabled={true}
+      icon="check"
+      mode="contained"
+      onPress={[Function]}
+    >
+      detail
+    </withTheme(Button)>
+    <withTheme(Button)
+      accessibilityLabel="price"
+      color="orange"
+      disabled={true}
+      icon="chart-bar"
+      mode="contained"
+      onPress={[Function]}
+    >
+      price
+    </withTheme(Button)>
+    <withTheme(Button)
+      accessibilityLabel="reset"
+      color="palegoldenrod"
+      icon="close"
+      mode="contained"
+      onPress={[Function]}
+    >
+      reset
+    </withTheme(Button)>
+  </View>
+</View>
+`;
